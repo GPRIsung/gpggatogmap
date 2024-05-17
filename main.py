@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 import django 
 from django.conf import settings 
 from django.template import Template, Context 
@@ -8,12 +9,12 @@ settings.configure(TEMPLATES=TEMPLATES)
 django.setup()
 
 # RED route file read
-file1 = open('COM15240510.ubx.txt', 'r') #NOVATEL
+file1 = open('COM15_novatel1_240517.ubx.txt', 'r',encoding='UTF8') #NOVATEL
 Lines1 = file1.readlines()
 file1.close()
 
 # BLUE route file read
-file2 = open('COM18240510.ubx.txt', 'r') #UBLOXwe
+file2 = open('COM16_ublox1_240517.ubx.txt', 'r',encoding='UTF8') #UBLOXwe
 Lines2 = file2.readlines()
 file2.close()
 
@@ -36,21 +37,26 @@ duration = 10 # 5 min
 htmfilecount = int(((ehh-hh)*60+(emm-mm))/duration)+1 # total output html file count
 startwithstr = []
 endwithstr = []
-
+l1startpos = []
+l2startpos = []
+l1endpos = []
+l2endpos = []
 # Generation of starttime number based on first data. extract hh and mm from $GPGGA hhmmss.s section.
 for i in range(htmfilecount):
     inchh = int((mm+duration*i)/60)
     inchh2 = int((mm+duration*(i+1))/60)
-    startstr = str((hh+inchh)*100 + mm+duration*i - 60*inchh)
-    startwithstr.append(startstr)
-    endstr = str((hh+inchh2)*100 + mm+duration*(i+1) - 60*inchh2)
+    startstr = "{:02d}".format(hh+9+inchh)+"{:02d}".format( mm+duration*i - 60*inchh)
+    startwithstr.append("{:02d}".format(hh+inchh)+"{:02d}".format( mm+duration*i - 60*inchh))
+    endstr = "{:02d}".format(hh+9+inchh2)+"{:02d}".format( mm+duration*(i+1) - 60*inchh2)
+    endstr2 = "{:02d}".format(hh+inchh2)+"{:02d}".format( mm+duration*(i+1) - 60*inchh2)
     if(i == htmfilecount-1):
-        endstr = str(ehh*100+emm)
-    endwithstr.append(endstr)
+        endstr = "{:02d}".format(ehh+9)+"{:02d}".format(emm)
+        endstr2 = "{:02d}".format(ehh)+"{:02d}".format(emm)
+    endwithstr.append(endstr2)
     outfilename.append("ublox-{}-{}.htm".format(startstr+'00',endstr+'00' ))
 
-
-# 
+nolines = 0
+finalhtmfilecount = htmfilecount
 for inc in range(htmfilecount):
     line1count = 0
     line2count = 0
@@ -60,6 +66,11 @@ for inc in range(htmfilecount):
     totallon2 = 0
     gpggalist1 = ''
     gpggalist2 = ''
+    l1startpost = ''
+    l2startpost = ''
+    l1endpost = ''
+    l2endpost = ''
+
     for i in range(duration):
         for line1 in Lines1:# RED line
             if line1.startswith("$GPGGA"):
@@ -73,7 +84,7 @@ for inc in range(htmfilecount):
                     nhh2=nhh+1
                     nmm2=nmm+i-60
                 startstrtemp = ("{:d}".format(nhh2*100+nmm2)).rjust(4,'0')
-                if utctime.startswith(startstrtemp):
+                if (utctime.startswith(startstrtemp) and gpggasplit[2]!='' and gpggasplit[4]!=''): # need to check no lat and lng data
                     line1count += 1
                     gpggalat = float(gpggasplit[2])
                     lat = int(gpggalat/100) + (gpggalat-int(gpggalat/100)*100)/60.0
@@ -81,32 +92,54 @@ for inc in range(htmfilecount):
                     gpggalon = float(gpggasplit[4])
                     lon = int(gpggalon/100) + (gpggalon-int(gpggalon/100)*100)/60.0
                     totallon1 += lon
-                    gpggalist1 += "new google.maps.LatLng( {:.7f}, {:.7f} ),\n".format(lat, lon)
+                    
+                    postemp = '{{ lat: {0:.7f}, lng: {1:.7f} }}'
+                    gpggalist1 += postemp.format(lat, lon)+",\n"
+                    l1endpost = postemp.format(lat, lon)
+                    if(line1count==1):
+                        l1startpost = postemp.format(lat, lon)
+
 
         for line2 in Lines2:# BLUE line
-                if line2.startswith("$GPGGA"):
-                    gpggasplit = line2.split(",")
-                    utctime = gpggasplit[1]
-                    tempstr = "{:04d}".format(int(startwithstr[inc]))
-                    nhh,nmm = map(int,(tempstr[:2], tempstr[2:4]))
-                    nhh2 = nhh
-                    nmm2 = nmm+i
-                    if(nmm+i >= 60):
-                        nhh2=nhh+1
-                        nmm2=nmm+i-60
-                    startstrtemp = ("{:d}".format(nhh2*100+nmm2)).rjust(4,'0')
-                    if utctime.startswith(startstrtemp):
-                        gpggalat = float(gpggasplit[2])
-                        lat = int(gpggalat/100) + (gpggalat-int(gpggalat/100)*100)/60.0
-                        gpggalon = float(gpggasplit[4])
-                        lon = int(gpggalon/100) + (gpggalon-int(gpggalon/100)*100)/60.0
-                        gpggalist2 += "new google.maps.LatLng( {:.7f}, {:.7f} ),\n".format(lat, lon)
+            if line2.startswith("$GPGGA"):
+                gpggasplit = line2.split(",")
+                utctime = gpggasplit[1]
+                tempstr = "{:04d}".format(int(startwithstr[inc]))
+                nhh,nmm = map(int,(tempstr[:2], tempstr[2:4]))
+                nhh2 = nhh
+                nmm2 = nmm+i
+                if(nmm+i >= 60):
+                    nhh2=nhh+1
+                    nmm2=nmm+i-60
+                startstrtemp = ("{:d}".format(nhh2*100+nmm2)).rjust(4,'0')
+                if ( utctime.startswith(startstrtemp) and gpggasplit[2]!='' and gpggasplit[4]!=''): # need to check no lat and lng data:
+                    line2count += 1
+                    gpggalat = float(gpggasplit[2])
+                    lat = int(gpggalat/100) + (gpggalat-int(gpggalat/100)*100)/60.0
+                    gpggalon = float(gpggasplit[4])
+                    lon = int(gpggalon/100) + (gpggalon-int(gpggalon/100)*100)/60.0
+                    
+                    postemp = '{{ lat: {0:.7f}, lng: {1:.7f} }}'
+                    gpggalist2 += postemp.format(lat, lon)+",\n"
+                    l2endpost = postemp.format(lat, lon)
+                    if(line2count==1):
+                        l2startpost = postemp.format(lat, lon)
+
     if(line1count > 0):
         centlat = totallat1/line1count
         centlon = totallon1/line1count
         centlatlon.append("new google.maps.LatLng( {:.7f}, {:.7f} ),\n".format(centlat, centlon))
-    line1gpslist.append(gpggalist1)
-    line2gpslist.append(gpggalist2)
+        line1gpslist.append(gpggalist1)
+        line2gpslist.append(gpggalist2)
+        l1startpos.append(l1startpost)
+        l2startpos.append(l2startpost)
+        l1endpos.append(l1endpost)
+        l2endpos.append(l2endpost)
+    else:
+        finalhtmfilecount -=1
+        nolines+=1
+        outfilename.pop(inc)
+
 
 
 template = """
@@ -117,7 +150,7 @@ template = """
     <head>
         <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
         <title> {{ title }} </title>
-        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false&key=[GooglemapAPI]"></script>
+        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyAsYwEsxrWNXPKUwxxlSRCHF4_L2ANRk08&libraries=marker"></script>
         <script type="text/javascript">
         //<![CDATA[
             function Format(v)
@@ -139,17 +172,20 @@ template = """
 
             var MAX_ZOOM = 21;
             var GLOBE_WIDTH = 256;
-
-            function Load()
+            let map;
+            async function Load()
             {
                 // create map
-                var map = new google.maps.Map(document.getElementById('div'),
+                const {LatLngAltitude} = await google.maps.importLibrary("core")
+                const { Map } = await google.maps.importLibrary("maps");
+                map = new Map(document.getElementById('div'),
                 {
                     center: new google.maps.LatLng(  37.362489,126.737600 ),
                     zoom: 16,
                     mapTypeId: google.maps.MapTypeId.ROADMAP,
                     draggableCursor: 'crosshair',
-                    overviewMapControl: true
+                    overviewMapControl: true,
+                    mapId: "MarkerMap",
                 });
                 
                 
@@ -173,12 +209,22 @@ template = """
                              {{ gpslist2 }} 
                             ]
                 ];
+
+                var l1startpos = {{ l1startpos }}
+                var l1endpos = {{ l1endpos }}
+                var l2startpos = {{ l2startpos }}
+                var l2endpos = {{ l2endpos }}
                 
                 // define polyline
-                var lineSymbol = {
+                var redlineSymbol = {
                     path: google.maps.SymbolPath.CIRCLE,
                     scale: 2,
-                    strokeColor: '#0A0'
+                    strokeColor: '#F00'
+                };
+                var bluelineSymbol = {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 2,
+                    strokeColor: '#00F'
                 };
 
 
@@ -189,20 +235,21 @@ template = """
                     new google.maps.Polyline({
                     path: t1[i],
                     strokeColor: '#FF0000',
-                    strokeOpacity: 2.0,
-                    strokeWeight: 5,
-                    // icons: [{
-                    // icon: lineSymbol,
-                    // offset: '100%'
-                    // }],
+                    strokeOpacity: 1.0,
+                    strokeWeight: 1,
+                     icons: [{
+                     icon: redlineSymbol,
+                     offset: '100%'
+                     }],
                     map: map
                     });
-                    new google.maps.Marker(
-                    {
-                        map: map,
-                        position: t1[i],
-                        icon: s
-                    });
+
+                    // new google.maps.marker.AdvancedMarkerElement(
+                    // {
+                    //     map: map,
+                    //     position: t1[i],
+                    //     icon: redlineSymbol
+                    // });
                 }
                 
                 for (i = 0; i < t2.length; i ++)
@@ -211,33 +258,35 @@ template = """
                     new google.maps.Polyline({
                     path: t2[i],
                     strokeColor: '#0000FF',
-                    strokeOpacity: 2.0,
-                    strokeWeight: 5,
-                    // icons: [{
-                    // icon: lineSymbol,
-                    // offset: '100%'
-                    // }],
+                    strokeOpacity: 1.0,
+                    strokeWeight: 1,
+                     icons: [{
+                     icon: bluelineSymbol,
+                     offset: '100%'
+                     }],
                     map: map
                     });
-                    new google.maps.Marker(
-                    {
-                        map: map,
-                        position: t2[i],
-                        icon: lineSymbol
-                    });
+
+                    // new google.maps.marker.AdvancedMarkerElement(
+                    // {
+                    //     map: map,
+                    //     position: t2[i],
+                    //     icon: lineSymbol
+                    // });
                 }
                 // add the start and the end point
-                new google.maps.Marker(
+                new google.maps.marker.AdvancedMarkerElement(
                 {
                     map: map,
-                    position: t2[0],
-                    title: 'Start'
+                    position: l1startpos,
+                    title: 'L1Start'
                 });
-                new google.maps.Marker(
+
+                new google.maps.marker.AdvancedMarkerElement(
                 {
                     map: map,
-                    position: t2[t2.length-1],
-                    title: 'End'
+                    position: l2startpos,
+                    title: 'L2Start'
                 });
                 // create map fitted to the track
                 
@@ -277,9 +326,11 @@ template = """
     </body>
 </html>
 """
-for i in range(htmfilecount):
-    t = Template(template).render(Context({"title": outfilename[i],"gpslist1":line1gpslist[i],"gpslist2":line2gpslist[i], "centlatlon":centlatlon[i]}))
+for i in range(finalhtmfilecount):
+    t = Template(template).render(Context({"title": outfilename[i],"gpslist1":line1gpslist[i],"gpslist2":line2gpslist[i], "l1startpos":l1startpos[i], "l1endpos":l1endpos[i],"l2startpos":l2startpos[i], "l2endpos":l2endpos[i], "centlatlon":centlatlon[i]}))
     # print(outfilename[i])
     fileout = open(outfilename[i], 'w')
     fileout.write(t)
     fileout.close()
+
+print("nolines:{}".format(nolines))
