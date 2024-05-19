@@ -92,12 +92,13 @@ for inc in range(htmfilecount):
                     gpggalon = float(gpggasplit[4])
                     lon = int(gpggalon/100) + (gpggalon-int(gpggalon/100)*100)/60.0
                     totallon1 += lon
+                    nogps = bool(gpggasplit[13]=="")
                     
-                    postemp = '{{ lat: {0:.7f}, lng: {1:.7f} }}'
-                    gpggalist1 += postemp.format(lat, lon)+",\n"
-                    l1endpost = postemp.format(lat, lon)
+                    postemp = '{{ lat: {0:.7f}, lng: {1:.7f}, nogps:{2:d} }}'
+                    gpggalist1 += postemp.format(lat, lon, nogps)+",\n"
+                    l1endpost = postemp.format(lat, lon, nogps)
                     if(line1count==1):
-                        l1startpost = postemp.format(lat, lon)
+                        l1startpost = postemp.format(lat, lon, nogps)
 
 
         for line2 in Lines2:# BLUE line
@@ -118,17 +119,19 @@ for inc in range(htmfilecount):
                     lat = int(gpggalat/100) + (gpggalat-int(gpggalat/100)*100)/60.0
                     gpggalon = float(gpggasplit[4])
                     lon = int(gpggalon/100) + (gpggalon-int(gpggalon/100)*100)/60.0
+                    nogps = bool(gpggasplit[13]=="")
                     
-                    postemp = '{{ lat: {0:.7f}, lng: {1:.7f} }}'
-                    gpggalist2 += postemp.format(lat, lon)+",\n"
-                    l2endpost = postemp.format(lat, lon)
+                    postemp = '{{ lat: {0:.7f}, lng: {1:.7f}, nogps:{2:d} }}'
+                    gpggalist2 += postemp.format(lat, lon, nogps)+",\n"
+                    l2endpost = postemp.format(lat, lon, nogps)
                     if(line2count==1):
-                        l2startpost = postemp.format(lat, lon)
+                        l2startpost = postemp.format(lat, lon, nogps)
 
     if(line1count > 0):
         centlat = totallat1/line1count
         centlon = totallon1/line1count
-        centlatlon.append("new google.maps.LatLng( {:.7f}, {:.7f} ),\n".format(centlat, centlon))
+        postemp = '{{ lat: {0:.7f}, lng: {1:.7f} }},\n'
+        centlatlon.append(postemp.format(centlat, centlon))
         line1gpslist.append(gpggalist1)
         line2gpslist.append(gpggalist2)
         l1startpos.append(l1startpost)
@@ -143,6 +146,231 @@ for inc in range(htmfilecount):
 
 
 template = """
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml">
+    <!-- this file was created using the export function of u-center by u-blox AG, Switzerland. -->
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
+        <title> {{ title }} </title>
+        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyAsYwEsxrWNXPKUwxxlSRCHF4_L2ANRk08&libraries=marker"></script>
+        <script type="text/javascript">
+        //<![CDATA[
+            function Format(v)
+            {
+                var s = "";
+                if (v < 0) { v = -v; s = "-"; }
+                var i = Math.floor(v);
+                var f = Math.floor((v-i)*1e6);
+                var fs = f.toString();
+                while (fs.length < 6)
+                    fs = "0" + fs;
+                return s + i.toString() + "." + fs;
+            }
+
+            function MouseMove(p)
+            {
+                window.status = "Lat: " + Format(p.latLng.lat()) + " Lon: " + Format(p.latLng.lng());
+            }
+
+            var MAX_ZOOM = 21;
+            var GLOBE_WIDTH = 256;
+            let map;
+            async function Load()
+            {
+                // create map
+                const {LatLngAltitude} = await google.maps.importLibrary("core")
+                const { Map } = await google.maps.importLibrary("maps");
+                map = new Map(document.getElementById('div'),
+                {
+                    center: new google.maps.LatLng(  37.362489,126.737600 ),
+                    zoom: 16,
+                    mapTypeId: google.maps.MapTypeId.ROADMAP,
+                    draggableCursor: 'crosshair',
+                    overviewMapControl: true,
+                    mapId: "MarkerMap",
+                });
+                
+                
+                var i;
+                var j;
+                _mSvgEnabled = true;
+                _mSvgForced = true;
+                
+                // add listener 
+                google.maps.event.addListener(map, 'mousemove', MouseMove);
+                
+                // track is a two dimensional array with lat/long points
+                var t1 =  [  
+                           [
+                             {{ gpslist1 }} 
+                            ]
+                ];
+
+                var t2 =  [  
+                           [
+                             {{ gpslist2 }} 
+                            ]
+                ];
+
+                var l1startpos = {{ l1startpos }}
+                var l1endpos = {{ l1endpos }}
+                var l2startpos = {{ l2startpos }}
+                var l2endpos = {{ l2endpos }}
+                
+                // define icons
+                redcircleImg = "http://fl2.me/red_circle.png";
+                bluecircleImg = "http://fl2.me/blue_circle.png";
+                greycircleImg = "http://fl2.me/grey_circle.png";
+                darkgreycircleImg = "http://fl2.me/darkgrey_circle.png";
+                browncircleImg = "http://fl2.me/brown_circle.png";
+                darkbluecircleImg = "http://fl2.me/darkblue_circle.png";
+                pinkcircleImg = "http://fl2.me/pink_circle.png";
+                lightbluecircleImg = "http://fl2.me/lightblue_circle.png";
+
+                for (i = 0; i < t1[0].length; i ++)
+                {
+                    new google.maps.Polyline({
+                        path: t1[i],
+                        strokeColor: '#00FF00',
+                        strokeOpacity: 1.0,
+                        strokeWeight: 1,
+                        // icons: [{
+                        //     icon: redcircleImg,
+                        //     offset: '100%'
+                        // }],
+                        map: map
+                    });
+                    if(t1[0][i].nogps)
+                    {
+                    new google.maps.Marker(
+                        {
+                            map: map,
+                            position: t1[0][i],
+                            icon: {
+                                url:greycircleImg,
+                                size: new google.maps.Size(12,12),
+                                anchor: new google.maps.Point(6,6)
+                            } ,
+                            title:"Novatel NOGPS ["+ t1[0][i].lat +","+ t1[0][i].lng +"]"
+                        });
+                    }
+                    else
+                    {
+                        new google.maps.Marker(
+                        {
+                            map: map,
+                            position: t1[0][i],
+                            icon: {
+                                url:redcircleImg,
+                                size: new google.maps.Size(12,12),
+                                anchor: new google.maps.Point(6,6)
+                            } ,
+                            title:"Novatel GPS["+ t1[0][i].lat +","+ t1[0][i].lng +"]"
+                        });
+                    }
+                }
+                
+                for (i = 0; i < t2[0].length; i ++)
+                {
+                    new google.maps.Polyline({
+                        path: t2[i],
+                        strokeColor: '#00FF00',
+                        strokeOpacity: 1.0,
+                        strokeWeight: 1,
+                        // icons: [{
+                        //     icon: bluecircleImg,
+                        //     offset: '100%'
+                        // }],
+                        map: map
+                    });
+                    if(t2[0][i].nogps)
+                    {
+                    new google.maps.Marker(
+                        {
+                            map: map,
+                            position: t2[0][i],
+                            icon: {
+                                url:darkgreycircleImg,
+                                size: new google.maps.Size(12,12),
+                                anchor: new google.maps.Point(6,6)
+                            } ,
+                            title:"uBlox NOGPS ["+ t2[0][i].lat +","+ t2[0][i].lng +"]"
+                        });
+                    }
+                    else
+                    {
+                        new google.maps.Marker(
+                        {
+                            map: map,
+                            position: t2[0][i],
+                            icon: {
+                                url:bluecircleImg,
+                                size: new google.maps.Size(12,12),
+                                anchor: new google.maps.Point(6,6)
+                            } ,
+                            title:"Novatel GPS ["+ t2[0][i].lat +","+ t2[0][i].lng +"]"
+                        });
+                    }
+                }
+
+                // add the start and the end point
+                new google.maps.Marker(
+                {
+                    map: map,
+                    position: l1startpos,
+                    title: 'Novatel Start'
+                });
+
+                new google.maps.Marker(
+                {
+                    map: map,
+                    position: l2startpos,
+                    title: 'Ublox Start'
+                });
+                // create map fitted to the track
+                
+                // set center and zoom level
+                map.setCenter( {{centlatlon}} );
+                map.setZoom(15);
+                
+                var legend = document.getElementById('legend');
+                var div = document.createElement('div');
+                
+                div.innerHTML = '<h4><img src="http://fl2.me/red_circle.png"/> Novatel GPS</h4>\
+                                <h4><img src="http://fl2.me/grey_circle.png"/> Novatel NOGPS</h4>\
+                                <h4><img src="http://fl2.me/blue_circle.png"/> UBLOX GPS</h4>\
+                                <h4><img src="http://fl2.me/darkgrey_circle.png"/> UBLOX NOGPS</h4>'
+                legend.appendChild(div);
+                map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(legend);
+            }
+        //]]>
+        </script>
+        <style>
+        #legend {
+            font-family: Arial, sans-serif;
+            background: #fff;
+            padding: 10px;
+            margin: 10px;
+            border: 3px solid #000;
+        }
+        #legend h3 {
+            margin-top: 0;
+        }
+
+        #legend img {
+            vertical-align: middle;
+        }
+        </style>
+    </head>
+    <body onload="Load();" style="margin:0px 0px 0px 0px; overflow:hidden;">
+        <div id="div"  style="position:absolute; top:0px; left:0px; width:100%; height:100%;"></div>
+        <div id="legend"><h3>Legend</h3></div>
+    </body>
+</html>
+"""
+
+template2 = """
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml">
@@ -333,4 +561,4 @@ for i in range(finalhtmfilecount):
     fileout.write(t)
     fileout.close()
 
-print("nolines:{}".format(nolines))
+#print("nolines:{}".format(nolines))
