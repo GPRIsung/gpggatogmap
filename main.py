@@ -153,7 +153,7 @@ template = """
     <head>
         <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
         <title> {{ title }} </title>
-        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyAsYwEsxrWNXPKUwxxlSRCHF4_L2ANRk08&libraries=marker"></script>
+        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=[GOOGLEMAPAPIKEY]&libraries=marker"></script>
         <script type="text/javascript">
         //<![CDATA[
             function Format(v)
@@ -378,7 +378,7 @@ template2 = """
     <head>
         <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
         <title> {{ title }} </title>
-        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyAsYwEsxrWNXPKUwxxlSRCHF4_L2ANRk08&libraries=marker"></script>
+        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=[GOOGLEMAPAPIKEY]&libraries=marker"></script>
         <script type="text/javascript">
         //<![CDATA[
             function Format(v)
