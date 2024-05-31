@@ -165,7 +165,7 @@ template = """
     <head>
         <meta http-equiv="content-type" content="text/html; charset=UTF-8"/>
         <title> {{ title }} </title>
-        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=AIzaSyAsYwEsxrWNXPKUwxxlSRCHF4_L2ANRk08&libraries=marker"></script>
+        <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?key=GOOGLEMAPKEY&libraries=marker"></script>
         <script type="text/javascript">
         //<![CDATA[
             function Format(v)
@@ -420,7 +420,7 @@ template2 = """
 .custom_zoomcontrol span img {width:15px;height:15px;padding:12px 0;border:none;}    
 .custom_zoomcontrol span:first-child{border-bottom:1px solid #bfbfbf;}     
 </style>
-<script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=e2jjal48we&amp;submodules=geocoder"></script>
+<script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=NAVERMAPKEY&amp;submodules=geocoder"></script>
 </head>
 <body>
 <div class="map_wrap">
